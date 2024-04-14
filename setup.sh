@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 执行第一个任务：安装fuse3
+# 任务 1: 安装 fuse3
 apt-get install -y fuse3
 
-# 执行第二个任务：创建docker配置文件并重启docker服务
+# 任务 2: 创建 Docker 配置文件并重启 Docker 服务
 mkdir -p /etc/systemd/system/docker.service.d/
 cat <<EOF > /etc/systemd/system/docker.service.d/clear_mount_propagation_flags.conf
 [Service]
@@ -11,22 +11,17 @@ MountFlags=shared
 EOF
 systemctl restart docker.service
 
-# 执行第三个任务：创建文件夹并设置权限
+# 任务 3: 创建文件夹并设置权限
 mkdir -p /opt/docker/qb-downloads/本地/本地电影
 mkdir -p /opt/docker/qb-downloads/本地/本地剧集
 mkdir -p /opt/docker/qb-downloads/本地/links电影
 mkdir -p /opt/docker/qb-downloads/本地/links剧集
 
-# 执行第四个任务：创建Docker网络
-docker network create -d bridge --subnet 172.19.0.0/16 1panel-network2
-
-# 获取LICENSE_KEY值
+# 任务 4: 获取 LICENSE_KEY 和 PLEX_CLAIM 值
 LICENSE_KEY=$1
-
-# 获取PLEX_CLAIM值
 PLEX_CLAIM=$2
 
-# 添加Docker Compose内容
+# 任务 5: 添加 Docker Compose 内容
 cat <<EOF > docker-compose.yml
 version: '3'
 
@@ -40,24 +35,23 @@ services:
       - WEBUI_PORT=8089
     ports:
       - "35781:35781"
-      - "127.0.0.1:8089:8089"
+      - "8089:8089"
     volumes:
       - /opt/docker/qb/config:/config
       - /opt/docker/qb-downloads/movie:/movie
       - /opt/docker/qb-downloads/tv:/tv
       - /opt/docker/qb-downloads/本地:/本地
-      - /guazai:/guazai:rslave      
+      - /guazai:/guazai:rslave
     restart: unless-stopped
     networks:
-      1panel-network2:
-        ipv4_address: 172.19.0.2
+      - 1panel-network
 
   movie-robot:
     image: yipengfei/movie-robot:latest
     container_name: movie-robot
     restart: always
     ports:
-      - "127.0.0.1:1329:1329"
+      - "1329:1329"
     volumes:
       - /opt/docker/mr:/data
       - /opt/docker/qb-downloads/movie:/movie
@@ -67,39 +61,36 @@ services:
     environment:
       - LICENSE_KEY=$LICENSE_KEY
     networks:
-      1panel-network2:
-        ipv4_address: 172.19.0.3
+      - 1panel-network
 
   flaresolverr:
     container_name: flaresolverr
     image: ghcr.io/flaresolverr/flaresolverr:latest
     ports:
-      - "8191:8191"    
+      - "8191:8191"
     environment:
       LOG_LEVEL: info
-    restart: unless-stopped     
+    restart: unless-stopped
     networks:
-      1panel-network2:
-        ipv4_address: 172.19.0.4
+      - 1panel-network
 
   plex:
     container_name: plex
     image: lscr.io/linuxserver/plex:latest
     ports:
-      - "33333:32400"
+      - "32400:32400"
     environment:
       - PUID=0
       - PGID=0
       - VERSION=docker
       - PLEX_CLAIM=$PLEX_CLAIM
     volumes:
-      - /guazai:/guazai:rslave 
+      - /guazai:/guazai:rslave
       - /opt/docker/plex:/config
       - /opt/docker/qb-downloads/本地:/本地
     restart: unless-stopped
     networks:
-      1panel-network2:
-        ipv4_address: 172.19.0.5   
+      - 1panel-network
 
   clouddrive:
     image: cloudnas/clouddrive2
@@ -111,28 +102,22 @@ services:
       - /cloudnas:/CloudNAS:shared
       - /guazai:/guazai:shared
       - /opt/cloudnas-config:/Config
-      - /opt/docker/qb-downloads/本地:/本地      
+      - /opt/docker/qb-downloads/本地:/本地
     networks:
-      1panel-network2:
-        ipv4_address: 172.19.0.6  
+      - 1panel-network
     pid: host
     privileged: true
     devices:
       - /dev/fuse:/dev/fuse
     ports:
-      - "127.0.0.1:19798:19798"
+      - "19798:19798"
 
 networks:
-  1panel-network2:
+  1panel-network:
     external: true
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.19.0.0/16
-EOF
 
-# 执行第五个任务：启动Docker服务
+# 任务 6: 启动 Docker 服务
 docker-compose up -d
 
-# 执行第六个任务：修改权限
+# 任务 7: 修改权限
 chmod -R 777 /opt
