@@ -21,10 +21,10 @@ mkdir -p /opt/docker/qb-downloads/本地/links剧集
 docker network create -d bridge --subnet 172.19.0.0/16 1panel-network2
 
 # 获取LICENSE_KEY值
-read -p "Enter your LICENSE_KEY value: " LICENSE_KEY
+LICENSE_KEY=$1
 
 # 获取PLEX_CLAIM值
-read -p "Enter your PLEX_CLAIM value: " PLEX_CLAIM
+PLEX_CLAIM=$2
 
 # 添加Docker Compose内容
 cat <<EOF > docker-compose.yml
